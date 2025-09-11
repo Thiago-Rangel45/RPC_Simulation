@@ -33,3 +33,5 @@ target_link_libraries(RPC
 )
 
 configure_file(vis.mac vis.mac COPYONLY)
+configure_file(run.mac run.mac COPYONLY)
+configure_file(ar_70_co2_30_1000mbar.gas ar_70_co2_30_1000mbar.gas COPYONLY)

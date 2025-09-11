@@ -78,7 +78,6 @@ void RunAction::EndOfRunAction(const G4Run*){
             << " rms = " << analysisManager->GetH1(5)->rms() << G4endl;
     }
 
-    // Save histograms and ntuple
     analysisManager->Write();
     analysisManager->CloseFile();
     

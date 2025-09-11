@@ -7,7 +7,7 @@
 #include "Physics.hh"
 #include "RunAction.hh"
 #include "Randomize.hh"
-
+#include "G4coutDestination.hh" 
 
 EventAction::~EventAction()
 {
@@ -25,11 +25,17 @@ void EventAction::BeginOfEventAction(const G4Event* /*event*/) {
 }
 
 void EventAction::EndOfEventAction(const G4Event* event) {
+  G4int eventID = event->GetEventID();
+  G4cout << "\n[LOG] EventAction::EndOfEventAction -> End of Event " << eventID << G4endl;
 
   GarfieldPhysics* garfieldPhysics = GarfieldPhysics::GetInstance();
   G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
+  
   fAvalancheSize = garfieldPhysics->GetAvalancheSize();
   fGain = garfieldPhysics->GetGain();
+  
+  G4cout << "    -> Retrieved Avalanche Size: " << fAvalancheSize << G4endl;
+  G4cout << "    -> Retrieved Gain: " << fGain << G4endl;
 
   analysisManager->FillH1(1, fEnergyAbs);
   analysisManager->FillH1(2, fTrackLAbs);
@@ -42,11 +48,12 @@ void EventAction::EndOfEventAction(const G4Event* event) {
   analysisManager->FillNtupleDColumn(2, fEnergyGas);
   analysisManager->FillNtupleDColumn(3, fAvalancheSize);
   analysisManager->FillNtupleDColumn(4, fGain);
+  analysisManager->AddNtupleRow();
 
-  G4int eventID = event->GetEventID();
+
   G4int printModulo = G4RunManager::GetRunManager()->GetPrintProgress();
   if ((printModulo > 0) && (eventID % printModulo == 0)) {
-    G4cout << "---> End of event: " << eventID << G4endl;
+    G4cout << "---> End of event summary: " << eventID << G4endl;
 
     G4cout << "   Absorber: total energy: " << std::setw(7)
            << G4BestUnit(fEnergyAbs, "Energy")

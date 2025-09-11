@@ -12,6 +12,7 @@
 #include "G4Colour.hh"
 #include "G4Region.hh"
 #include "FastSimulationModel.hh"
+#include "G4UserLimits.hh" // <-- 1. INCLUDE ADICIONADO
 
 DetectorConstruction::DetectorConstruction() {}
 
@@ -67,7 +68,7 @@ void DetectorConstruction::DefineMaterials(){
 
 G4VPhysicalVolume* DetectorConstruction::DefineVolumes() {
   
-    G4NistManager *nist  = G4NistManager::Instance(); // <<< A variável correta é 'nist'
+    G4NistManager *nist  = G4NistManager::Instance();
     G4bool fCheckOverlaps = true;
 
     // Volume do Mundo
@@ -93,7 +94,6 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes() {
     G4double dimZ_Al = 165.0 * cm;
 
     // Definição dos sólidos com espessura na direção Y
-    // CORREÇÃO: Trocando 'nistManager' por 'nist'
     G4Material* aluminium = nist->FindOrBuildMaterial("G4_Al");
     G4Box* solidAlu = new G4Box("AlLayerSolid", dimX_Al / 2, aluThickness / 2, dimZ_Al / 2);
     G4LogicalVolume* logicAlu = new G4LogicalVolume(solidAlu, aluminium, "AlLayerLV");
@@ -117,6 +117,13 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes() {
     G4Box* solidGasVolume = new G4Box("GasVolumeSolid", dimX_Al / 2, gasThickness / 2, dimZ_Al / 2);
     G4LogicalVolume* logicGasVolume = new G4LogicalVolume(solidGasVolume, fGasMaterial, "GasVolumeLV");
     logicGasVolume->SetVisAttributes(new G4VisAttributes(G4Colour(0.5, 0.5, 1.0, 0.3)));
+
+    // ==============================================================================
+    // >> 2. CÓDIGO ADICIONADO PARA FORÇAR PASSOS MENORES DENTRO DO GÁS <<
+    // Essencial para garantir que o FastSimulationModel seja ativado em volumes finos.
+    G4UserLimits* userLimits = new G4UserLimits(0.1*mm);
+    logicGasVolume->SetUserLimits(userLimits);
+    // ==============================================================================
 
     // --- Início do posicionamento das camadas ao longo de Y ---
     G4double currentY = 0; 

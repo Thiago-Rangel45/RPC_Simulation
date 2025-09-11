@@ -5,49 +5,41 @@
 #include "G4Gamma.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4VPhysicalVolume.hh"
-
+#include "G4coutDestination.hh" 
 
 FastSimulationModel::FastSimulationModel(G4String modelName, G4Region* envelope) : G4VFastSimulationModel(modelName, envelope) {
+  G4cout << "[LOG] FastSimulationModel -> Constructor called for model: " << modelName << G4endl;
   fGarfieldPhysics = GarfieldPhysics::GetInstance();
   fGarfieldPhysics->InitializePhysics();
 }
 
 FastSimulationModel::FastSimulationModel(G4String modelName) : G4VFastSimulationModel(modelName) {
+  G4cout << "[LOG] FastSimulationModel -> Constructor called for model: " << modelName << G4endl;
   fGarfieldPhysics = GarfieldPhysics::GetInstance();
   fGarfieldPhysics->InitializePhysics();
 }
 
-FastSimulationModel::~FastSimulationModel() 
-{
-}
-
-void FastSimulationModel::WriteGeometryToGDML(G4VPhysicalVolume* physicalVolume) {
-  G4GDMLParser* parser = new G4GDMLParser();
-  remove("garfieldGeometry.gdml");
-  parser->Write("garfieldGeometry.gdml", physicalVolume, false);
-  delete parser;
-}
+FastSimulationModel::~FastSimulationModel() {}
 
 G4bool FastSimulationModel::IsApplicable(const G4ParticleDefinition& particleType) {
   G4String particleName = particleType.GetParticleName();
-  if (fGarfieldPhysics->FindParticleName(particleName, "garfield")) {
-    return true;
-  }
-  return false;
+  bool result = fGarfieldPhysics->FindParticleName(particleName, "garfield");
+  G4cout << "[LOG] FastSimulationModel::IsApplicable -> Particle: " << particleName << " -> Applicable? " << (result ? "Yes" : "No") << G4endl;
+  return result;
 }
 
 G4bool FastSimulationModel::ModelTrigger(const G4FastTrack& fastTrack) {
   double ekin_MeV = fastTrack.GetPrimaryTrack()->GetKineticEnergy() / MeV;
   G4String particleName =
       fastTrack.GetPrimaryTrack()->GetParticleDefinition()->GetParticleName();
-  if (fGarfieldPhysics->FindParticleNameEnergy(particleName, ekin_MeV,
-                                               "garfield")) {
-    return true;
-  }
-  return false;
+  bool result = fGarfieldPhysics->FindParticleNameEnergy(particleName, ekin_MeV, "garfield");
+  G4cout << "[LOG] FastSimulationModel::ModelTrigger -> Particle: " << particleName << ", E_kin: " << ekin_MeV << " MeV. Trigger? " << (result ? "Yes" : "No") << G4endl;
+  return result;
 }
 
 void FastSimulationModel::DoIt(const G4FastTrack& fastTrack, G4FastStep& fastStep) {
+  G4cout << "\n========================================================================" << G4endl;
+  G4cout << "[LOG] FastSimulationModel::DoIt -> TRIGGERED! Handing track to GarfieldPhysics." << G4endl;
 
   G4ThreeVector localdir = fastTrack.GetPrimaryTrackLocalDirection();
   G4ThreeVector localpos = fastTrack.GetPrimaryTrackLocalPosition();
@@ -57,6 +49,11 @@ void FastSimulationModel::DoIt(const G4FastTrack& fastTrack, G4FastStep& fastSte
 
   G4String particleName =
       fastTrack.GetPrimaryTrack()->GetParticleDefinition()->GetParticleName();
+      
+  G4cout << "    -> Particle: " << particleName << ", E_kin: " << ekin_MeV << " MeV" << G4endl;
+  G4cout << "    -> Position (cm): (" << localpos.x() / CLHEP::cm << ", " << localpos.y() / CLHEP::cm << ", " << localpos.z() / CLHEP::cm << ")" << G4endl;
+  G4cout << "========================================================================\n" << G4endl;
+
 
   fastStep.KillPrimaryTrack();
   fastStep.ProposePrimaryTrackPathLength(0.0);
