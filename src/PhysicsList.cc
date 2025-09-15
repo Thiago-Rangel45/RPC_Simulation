@@ -1,4 +1,4 @@
-#include "PhysicsList.hh" 
+#include "PhysicsList.hh"
 #include "G4EmConfigurator.hh"
 #include "G4FastSimulationManagerProcess.hh"
 #include "G4LossTableManager.hh"
@@ -9,7 +9,9 @@
 #include "G4RegionStore.hh"
 #include "QGSP_BERT_HP.hh"
 #include "G4SystemOfUnits.hh"
-#include "Physics.hh" 
+#include "Physics.hh"
+#include "G4StepLimiter.hh"
+#include "G4UserSpecialCuts.hh"
 
 PhysicsList::PhysicsList() : G4VModularPhysicsList() {
     SetVerboseLevel(0);
@@ -23,13 +25,8 @@ PhysicsList::PhysicsList() : G4VModularPhysicsList() {
         RegisterPhysics(elem);
     }
 
-    // ==============================================================================
-    // >> CORREÇÃO FINAL <<
-    // Inicializa o singleton do Garfield e define o modelo de ionização.
-    // Isso garante que a lista de partículas seja preenchida ANTES da física ser construída.
     GarfieldPhysics* garfieldPhysics = GarfieldPhysics::GetInstance();
     garfieldPhysics->SetIonizationModel("PAIPhot");
-    // ==============================================================================
 }
 
 PhysicsList::~PhysicsList() {}
@@ -113,4 +110,24 @@ void PhysicsList::ConstructParticle() {
 void PhysicsList::ConstructProcess() {
     G4VModularPhysicsList::ConstructProcess();
     AddParameterisation();
+    GarfieldPhysics* garfieldPhysics = GarfieldPhysics::GetInstance();
+
+    auto theParticleIterator = GetParticleIterator();
+    theParticleIterator->reset();
+    while ((*theParticleIterator)()) {
+        G4ParticleDefinition* particle = theParticleIterator->value();
+        G4ProcessManager* pmanager = particle->GetProcessManager();
+
+        if (!particle->IsShortLived()) {
+            pmanager->AddProcess(new G4StepLimiter(), -1, -1, 3);
+            pmanager->AddProcess(new G4UserSpecialCuts(), -1, -1, 4);
+        }
+
+        if (garfieldPhysics->FindParticleName(particle->GetParticleName(), "garfield")) {
+            G4VProcess* fsmp = pmanager->GetProcess("G4FSMP_garfield");
+            if (fsmp) {
+                pmanager->SetProcessOrdering(fsmp, G4ProcessVectorDoItIndex::idxPostStep, 0);
+            }
+        }
+    }
 }

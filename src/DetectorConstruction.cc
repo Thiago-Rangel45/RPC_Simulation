@@ -12,7 +12,7 @@
 #include "G4Colour.hh"
 #include "G4Region.hh"
 #include "FastSimulationModel.hh"
-#include "G4UserLimits.hh" // <-- 1. INCLUDE ADICIONADO
+#include "G4UserLimits.hh"
 
 DetectorConstruction::DetectorConstruction() {}
 
@@ -36,7 +36,6 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
 void DetectorConstruction::DefineMaterials(){
     G4NistManager* nistManager = G4NistManager::Instance();
 
-    // Materiais padrão
     nistManager->FindOrBuildMaterial("G4_Cu");
     nistManager->FindOrBuildMaterial("G4_Al");
     nistManager->FindOrBuildMaterial("G4_PLEXIGLASS");
@@ -44,22 +43,31 @@ void DetectorConstruction::DefineMaterials(){
     nistManager->FindOrBuildMaterial("G4_GLASS_PLATE");
     nistManager->FindOrBuildMaterial("G4_AIR");
 
-    // Elementos
     G4Element* elC = nistManager->FindOrBuildElement("C");
-    G4Element* elO = nistManager->FindOrBuildElement("O");
-    G4Element* elAr = nistManager->FindOrBuildElement("Ar");
+    G4Element* elH = nistManager->FindOrBuildElement("H");
+    G4Element* elS = nistManager->FindOrBuildElement("S");
+    G4Element* elF = nistManager->FindOrBuildElement("F");
 
-    // Dióxido de Carbono (CO2)
-    G4Material* co2 = new G4Material("CO2", 1.977 * mg / cm3, 2, kStateGas);
-    co2->AddElement(elC, 1);
-    co2->AddElement(elO, 2);
+    G4Material* mat_iC4H10 = new G4Material("G4_iC4H10", 2.51 * mg/cm3, 2, kStateGas);
+    mat_iC4H10->AddElement(elC, 4);
+    mat_iC4H10->AddElement(elH, 10);
 
-    // Mistura de gás Argônio-CO2 (70/30)
-    fGasMaterial = new G4Material("ArCO2_70_30", 1.8223 * mg / cm3, 2, kStateGas);
-    fGasMaterial->AddElement(elAr, 70. * perCent);
-    fGasMaterial->AddMaterial(co2, 30. * perCent);
+    G4Material* mat_SF6 = new G4Material("G4_SF6", 6.17 * mg/cm3, 2, kStateGas);
+    mat_SF6->AddElement(elS, 1);
+    mat_SF6->AddElement(elF, 6);
+
+    G4Material* mat_C2H2F4 = new G4Material("G4_C2H2F4", 4.25 * mg/cm3, 3, kStateGas);
+    mat_C2H2F4->AddElement(elC, 2);
+    mat_C2H2F4->AddElement(elH, 2);
+    mat_C2H2F4->AddElement(elF, 4);
+
+    G4double density_mix = 0.05 * (2.51*mg/cm3) + 0.05 * (6.17*mg/cm3) + 0.90 * (4.25*mg/cm3);
     
-    // Atribui materiais às variáveis de membro
+    fGasMaterial = new G4Material("RPC_Gas", density_mix, 3, kStateGas);
+    fGasMaterial->AddMaterial(mat_iC4H10, 2.85 * perCent);
+    fGasMaterial->AddMaterial(mat_SF6,    7.16 * perCent);
+    fGasMaterial->AddMaterial(mat_C2H2F4, 90.0 * perCent);
+    
     fPadMaterial = nistManager->FindOrBuildMaterial("G4_Cu");
     fBorderMaterial = nistManager->FindOrBuildMaterial("G4_Cu");
 
@@ -71,7 +79,6 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes() {
     G4NistManager *nist  = G4NistManager::Instance();
     G4bool fCheckOverlaps = true;
 
-    // Volume do Mundo
     G4Material* worldMat = nist->FindOrBuildMaterial("G4_AIR");
     G4double rWorld = 1.5 * m;
     G4Sphere* solidWorld = new G4Sphere("World", 0., rWorld, 0., 2*pi, 0., pi);      
@@ -79,9 +86,6 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes() {
     G4VPhysicalVolume* physWorld = new G4PVPlacement(0, G4ThreeVector(), logicWorld, "physWorld", 0, false, 0, fCheckOverlaps);
     logicWorld->SetVisAttributes(G4VisAttributes::GetInvisible());
     
-    // =================================================================================
-    // Definição das camadas do detector (EMPILHAMENTO AO LONGO DO EIXO Y)
-    // =================================================================================
     G4double aluThickness = 2.5 * cm;
     G4double acrylicThickness = 1.0 * cm;
     G4double graphiteThickness = 1.0 * cm;
@@ -89,11 +93,9 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes() {
     G4double gasThickness = 0.2 * cm;
     G4double padThickness = 0.5 * cm;
 
-    // Dimensões transversais
     G4double dimX_Al = 128.5 * cm;
     G4double dimZ_Al = 165.0 * cm;
 
-    // Definição dos sólidos com espessura na direção Y
     G4Material* aluminium = nist->FindOrBuildMaterial("G4_Al");
     G4Box* solidAlu = new G4Box("AlLayerSolid", dimX_Al / 2, aluThickness / 2, dimZ_Al / 2);
     G4LogicalVolume* logicAlu = new G4LogicalVolume(solidAlu, aluminium, "AlLayerLV");
@@ -118,28 +120,18 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes() {
     G4LogicalVolume* logicGasVolume = new G4LogicalVolume(solidGasVolume, fGasMaterial, "GasVolumeLV");
     logicGasVolume->SetVisAttributes(new G4VisAttributes(G4Colour(0.5, 0.5, 1.0, 0.3)));
 
-    // ==============================================================================
-    // >> 2. CÓDIGO ADICIONADO PARA FORÇAR PASSOS MENORES DENTRO DO GÁS <<
-    // Essencial para garantir que o FastSimulationModel seja ativado em volumes finos.
-    G4UserLimits* userLimits = new G4UserLimits(0.1*mm);
+    G4UserLimits* userLimits = new G4UserLimits(0.01 * mm);
     logicGasVolume->SetUserLimits(userLimits);
-    // ==============================================================================
-
-    // --- Início do posicionamento das camadas ao longo de Y ---
+    
     G4double currentY = 0; 
-
-    // O centro do detector ficará em Y=0. Primeiro calculamos a altura total.
     G4double totalThickness = 2*aluThickness + 2*acrylicThickness + 2*graphiteThickness + 2*glassThickness + gasThickness + padThickness;
-    currentY = totalThickness / 2.0; // Começa do topo (Y positivo) e vai descendo
-
-    // Camada de Alumínio Superior
+    currentY = totalThickness / 2.0; 
     currentY -= aluThickness / 2.0;
     new G4PVPlacement(nullptr, G4ThreeVector(0, currentY, 0), logicAlu, "AlLayerPV_Top", logicWorld, false, 1, fCheckOverlaps);
     currentY -= aluThickness / 2.0;
 
-    // --- Grade de Pads (agora no plano XZ) ---
     G4double xPad = 14.0 * cm;
-    G4double zPad_dim = 18.0 * cm; // A dimensão Y original do pad agora é Z
+    G4double zPad_dim = 18.0 * cm; 
     G4double borderThickness = 1.0 * cm;
     
     currentY -= padThickness / 2.0;
@@ -160,46 +152,37 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes() {
         }
     }
     currentY -= padThickness / 2.0;
-    // --- Fim da grade de pads ---
     
-    // Camada de Acrílico Superior
     currentY -= acrylicThickness / 2.0;
     new G4PVPlacement(nullptr, G4ThreeVector(0, currentY, 0), logicAcrylic, "AcrylicBoxPV_Top", logicWorld, false, 1, fCheckOverlaps);
     currentY -= acrylicThickness / 2.0;
 
-    // Camada de Grafite Superior
     currentY -= graphiteThickness / 2.0;
     new G4PVPlacement(nullptr, G4ThreeVector(0, currentY, 0), logicGraphite, "GraphiteBoxPV_Top", logicWorld, false, 1, fCheckOverlaps);
     currentY -= graphiteThickness / 2.0;
 
-    // Camada de Vidro Superior
     currentY -= glassThickness / 2.0;
     new G4PVPlacement(nullptr, G4ThreeVector(0, currentY, 0), logicGlass, "GlassBoxPV_Top", logicWorld, false, 1, fCheckOverlaps);
     currentY -= glassThickness / 2.0;
 
-    // Volume de Gás (região central)
     currentY -= gasThickness / 2.0;
     new G4PVPlacement(nullptr, G4ThreeVector(0, currentY, 0), logicGasVolume, "GasVolumePV", logicWorld, false, 0, fCheckOverlaps);
     fGasRegion = new G4Region("RegionGarfield");
     fGasRegion->AddRootLogicalVolume(logicGasVolume);
     currentY -= gasThickness / 2.0;
 
-    // Camada de Vidro Inferior
     currentY -= glassThickness / 2.0;
     new G4PVPlacement(nullptr, G4ThreeVector(0, currentY, 0), logicGlass, "GlassBoxPV_Bottom", logicWorld, false, 2, fCheckOverlaps);
     currentY -= glassThickness / 2.0;
     
-    // Camada de Grafite Inferior
     currentY -= graphiteThickness / 2.0;
     new G4PVPlacement(nullptr, G4ThreeVector(0, currentY, 0), logicGraphite, "GraphiteBoxPV_Bottom", logicWorld, false, 2, fCheckOverlaps);
     currentY -= graphiteThickness / 2.0;
     
-    // Camada de Acrílico Inferior
     currentY -= acrylicThickness / 2.0;
     new G4PVPlacement(nullptr, G4ThreeVector(0, currentY, 0), logicAcrylic, "AcrylicBoxPV_Bottom", logicWorld, false, 2, fCheckOverlaps);
     currentY -= acrylicThickness / 2.0;
     
-    // Camada de Alumínio Inferior
     currentY -= aluThickness / 2.0;
     new G4PVPlacement(nullptr, G4ThreeVector(0, currentY, 0), logicAlu, "AlLayerPV_Bottom", logicWorld, false, 2, fCheckOverlaps);
     

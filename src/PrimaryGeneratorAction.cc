@@ -37,7 +37,6 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event *anEvent)
     G4ThreeVector pos(x_pos, y_pos, z_pos);
     fParticleGun->SetParticlePosition(pos);
 
-    // Direciona a partícula para a origem (0,0,0)
     G4ThreeVector mom_direction = -pos;
     fParticleGun->SetParticleMomentumDirection(mom_direction.unit());
     

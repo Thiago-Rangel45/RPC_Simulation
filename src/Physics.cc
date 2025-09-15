@@ -7,14 +7,10 @@
 GarfieldPhysics* GarfieldPhysics::fGarfieldPhysics = nullptr;
 
 namespace {
-  // Espessura do gap gasoso [cm]
   constexpr double kGap   = 0.2; 
-  // Dimensões transversas do volume ativo [cm] - Eixos X e Z
   constexpr double kHalfX = 128.5 / 2.0;
   constexpr double kHalfZ = 165.0 / 2.0;
-  // Tensão aplicada entre as placas [V]
   constexpr double kHV    = 6000.0;
-  // Campo aproximado [V/cm]
   constexpr double kEy    = kHV / kGap;
 }
 
@@ -49,18 +45,10 @@ void GarfieldPhysics::SetIonizationModel(std::string model, bool useDefaults) {
 
   if (fIonizationModel == "PAIPhot" || fIonizationModel == "PAI") {
     if (useDefaults) {
-      this->AddParticleName("e-", 1e-6, 1e-3, "garfield");
       this->AddParticleName("gamma", 1e-6, 1e+8, "garfield");
-      
-      // =======================================================================================
-      // CORREÇÃO PRINCIPAL: Garante que o 'mu-' seja entregue ao Garfield++ (FastSimulation)
       this->AddParticleName("mu-", 1e+1, 1e+8, "garfield"); 
-      // =======================================================================================
-
-      // Partículas a serem tratadas com modelos especiais do Geant4 (PAI/PAIPhot)
       this->AddParticleName("e-", 0, 1e+8, "geant4");
       this->AddParticleName("e+", 0, 1e+8, "geant4");
-      this->AddParticleName("mu-", 0, 1e+8, "geant4");
       this->AddParticleName("mu+", 0, 1e+8, "geant4");
       this->AddParticleName("proton", 0, 1e+8, "geant4");
       this->AddParticleName("pi+", 0, 1e+8, "geant4");
@@ -185,13 +173,14 @@ double GarfieldPhysics::GetMaxEnergyMeVParticle(std::string name,
 void GarfieldPhysics::InitializePhysics(){
     G4cout << "[LOG] GarfieldPhysics::InitializePhysics -> Initializing..." << G4endl;
 
-    fMediumMagboltz = new Garfield::MediumMagboltz("ar", 70., "co2", 30.);
+    fMediumMagboltz = new Garfield::MediumMagboltz();
+    fMediumMagboltz->SetComposition("ic4h10", 5., "sf6", 5., "c2h2f4", 90.);
     fMediumMagboltz->SetTemperature(293.15);
     fMediumMagboltz->SetPressure(760.);
     fMediumMagboltz->EnableDrift();
     fMediumMagboltz->Initialise(true);
     
-    if (!fMediumMagboltz->LoadGasFile("ar_70_co2_30_1000mbar.gas")) {
+    if (!fMediumMagboltz->LoadGasFile("rpc_gas_5_5_90.gas")) {
         G4cout << "[LOG] GarfieldPhysics::InitializePhysics -> ERRO: Arquivo .gas não encontrado!" << G4endl;
     } else {
         G4cout << "[LOG] GarfieldPhysics::InitializePhysics -> Arquivo .gas carregado com sucesso." << G4endl;
@@ -203,10 +192,7 @@ void GarfieldPhysics::InitializePhysics(){
     fComponentAnalyticField->AddPlaneY(-0.5 * kGap,    0., "anode");
     fComponentAnalyticField->AddPlaneY(+0.5 * kGap, -kHV, "cathode");
     
-    // =======================================================================================
-    // CORREÇÃO DO LOG: Imprime o valor correto do campo elétrico (kEy), que já está em V/cm
     G4cout << "[LOG] GarfieldPhysics::InitializePhysics -> E-Field (Ey): " << kEy << " V/cm" << G4endl;
-    // =======================================================================================
 
 
     fSensor = new Garfield::Sensor();
@@ -234,19 +220,12 @@ void GarfieldPhysics::DoIt(std::string particleName, double ekin_MeV,
 
   Garfield::AvalancheMC drift(fSensor);
   drift.SetDistanceSteps(1.e-4);
-  Garfield::AvalancheMicroscopic avalanche(fSensor);
 
   constexpr double yMin = -0.5 * kGap;
   constexpr double yMax = +0.5 * kGap;
   double eKin_eV = ekin_MeV * 1e+6;
 
-  // =======================================================================================
-  // CORREÇÃO DE LÓGICA: Usa NewTrack para partículas primárias e TransportPhoton para gammas.
-  // A lógica anterior usava incorretamente TransportDeltaElectron para o múon.
-  // =======================================================================================
-  
   if (particleName == "gamma") {
-    // Lógica para fótons
     Garfield::TrackHeed::Cluster cl = fTrackHeed->TransportPhoton(x_cm, y_cm, z_cm, time, eKin_eV, dx, dy, dz);
     for (const auto& electron : cl.electrons) {
       if (electron.y < yMin || electron.y > yMax || std::abs(electron.x) > kHalfX || std::abs(electron.z) > kHalfZ) continue;
@@ -255,7 +234,6 @@ void GarfieldPhysics::DoIt(std::string particleName, double ekin_MeV,
       drift.DriftElectron(electron.x, electron.y, electron.z, electron.t);
     }
   } else {
-    // Lógica para todas as outras partículas carregadas (mu-, pi-, prótons, etc.)
     fTrackHeed->SetParticle(particleName);
     fTrackHeed->SetKineticEnergy(eKin_eV);
     fTrackHeed->NewTrack(x_cm, y_cm, z_cm, time, dx, dy, dz);
@@ -275,17 +253,9 @@ void GarfieldPhysics::DoIt(std::string particleName, double ekin_MeV,
     }
   }
 
-  // A lógica de avalanche é aplicada a todos os elétrons de ionização criados
-  const auto& driftedElectrons = drift.GetElectrons();
-  for (const auto& drifted : driftedElectrons) {
-      if (drifted.path.empty()) continue;
-      const auto& p1 = drifted.path.back();
-      avalanche.AvalancheElectron(p1.x, p1.y, p1.z, p1.t, 0.1, 0, 0, 0);
-      int ne = 0, ni = 0;
-      avalanche.GetAvalancheSize(ne, ni);
-      fAvalancheSize += ne;
-  }
-  
+  unsigned int ne = 0, ni = 0;
+  drift.GetAvalancheSize(ne, ni); 
+  fAvalancheSize = ne; 
   fGain = (nsum > 0) ? (static_cast<double>(fAvalancheSize) / nsum) : 0.0;
   
   G4cout << "[LOG] GarfieldPhysics::DoIt -> Ionization electrons created (nsum): " << nsum << G4endl;
