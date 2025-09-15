@@ -9,6 +9,15 @@
 #include "Randomize.hh"
 #include "G4coutDestination.hh" 
 
+EventAction::EventAction() 
+: G4UserEventAction(),
+  fEnergyAbs(0.),
+  fEnergyGas(0.),
+  fTrackLAbs(0.),
+  fAvalancheSize(0),
+  fGain(0.)
+{}
+
 EventAction::~EventAction()
 {
 }
@@ -31,6 +40,7 @@ void EventAction::EndOfEventAction(const G4Event* event) {
   GarfieldPhysics* garfieldPhysics = GarfieldPhysics::GetInstance();
   G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
   
+  fEnergyGas = garfieldPhysics->GetEnergyDeposit_MeV();
   fAvalancheSize = garfieldPhysics->GetAvalancheSize();
   fGain = garfieldPhysics->GetGain();
   

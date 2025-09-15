@@ -47,7 +47,7 @@ class GarfieldPhysics {
  public:
   static GarfieldPhysics* GetInstance();
   static void Dispose();
-
+  double GetEnergyDeposit_MeV();
   void InitializePhysics();
 
   void DoIt(std::string particleName, double ekin_MeV, double time, double x_cm,

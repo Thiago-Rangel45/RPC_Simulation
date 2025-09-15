@@ -73,6 +73,10 @@ void GarfieldPhysics::SetIonizationModel(std::string model, bool useDefaults) {
       this->AddParticleName("deuteron", 2.e+2, 1e+8, "garfield");
       this->AddParticleName("alpha", 4.e+2, 1e+8, "garfield");
     }
+  } else if (fIonizationModel == "Heed") {
+    if (useDefaults) {
+      this->AddParticleName("mu-", 1e+1, 1e+8, "garfield"); 
+    }
   }
 }
 
@@ -204,6 +208,10 @@ void GarfieldPhysics::InitializePhysics(){
     fTrackHeed = new Garfield::TrackHeed(fSensor);
     fTrackHeed->EnableDeltaElectronTransport();
     G4cout << "[LOG] GarfieldPhysics::InitializePhysics -> TrackHeed enabled. Initialization finished." << G4endl;
+}
+
+double GarfieldPhysics::GetEnergyDeposit_MeV() {
+  return fEnergyDeposit / 1.e6;
 }
 
 void GarfieldPhysics::DoIt(std::string particleName, double ekin_MeV,

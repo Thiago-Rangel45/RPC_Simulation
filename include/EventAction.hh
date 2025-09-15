@@ -4,29 +4,24 @@
 #include "G4UserEventAction.hh"
 #include "globals.hh"
 
-class EventAction : public G4UserEventAction {
- public:
-  EventAction() = default;
-  virtual ~EventAction();
+class EventAction : public G4UserEventAction
+{
+  public:
+    EventAction();
+    virtual ~EventAction();
 
-  void BeginOfEventAction(const G4Event* event) override;
-  void EndOfEventAction(const G4Event* event) override;
+    virtual void BeginOfEventAction(const G4Event*);
+    virtual void EndOfEventAction(const G4Event*);
 
-  void AddAbs(G4double de, G4double dl);
-  void AddGas(G4double de);
+    void AddAbs(G4double de, G4double dl) { fEnergyAbs += de; fTrackLAbs += dl; }
+    void AddGas(G4double de) { fEnergyGas += de; }
 
- private:
-  G4double fEnergyAbs = 0.;
-  G4double fEnergyGas = 0.;
-  G4double fTrackLAbs = 0.;
-  G4double fAvalancheSize = 0.;
-  G4double fGain = 0.;
+  private:
+    G4double fEnergyAbs;
+    G4double fEnergyGas;
+    G4double fTrackLAbs;
+    G4int    fAvalancheSize;
+    G4double fGain;
 };
-
-inline void EventAction::AddAbs(G4double de, G4double dl) {
-  fEnergyAbs += de;
-  fTrackLAbs += dl;
-}
-inline void EventAction::AddGas(G4double de) { fEnergyGas += de; }
 
 #endif

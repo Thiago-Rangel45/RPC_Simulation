@@ -21,16 +21,19 @@ DetectorConstruction::~DetectorConstruction() {}
 G4VPhysicalVolume* DetectorConstruction::Construct() {
     DefineMaterials();
     G4VPhysicalVolume* world = DefineVolumes();
+    
+    return world;
+}
 
+void DetectorConstruction::ConstructSDandField()
+{
     if (fGasRegion) {
-        G4cout << ">>> Attaching Fast Simulation Model to region '" 
+        G4cout << ">>> DetectorConstruction::ConstructSDandField() -> Anexando o Fast Simulation Model à região '"
                << fGasRegion->GetName() << "'" << G4endl;
         new FastSimulationModel("GarfieldFastSim", fGasRegion);
     } else {
-        G4cerr << "!!!! ERRO: Região do gás não foi criada. O modelo rápido do Garfield não será ativado." << G4endl;
+        G4cerr << "!!!! ERRO: Região do gás não foi criada em DefineVolumes(). O modelo rápido do Garfield não será ativado." << G4endl;
     }
-    
-    return world;
 }
 
 void DetectorConstruction::DefineMaterials(){
@@ -120,8 +123,8 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes() {
     G4LogicalVolume* logicGasVolume = new G4LogicalVolume(solidGasVolume, fGasMaterial, "GasVolumeLV");
     logicGasVolume->SetVisAttributes(new G4VisAttributes(G4Colour(0.5, 0.5, 1.0, 0.3)));
 
-    G4UserLimits* userLimits = new G4UserLimits(0.01 * mm);
-    logicGasVolume->SetUserLimits(userLimits);
+    //G4UserLimits* userLimits = new G4UserLimits(0.01 * mm);
+    //logicGasVolume->SetUserLimits(userLimits);
     
     G4double currentY = 0; 
     G4double totalThickness = 2*aluThickness + 2*acrylicThickness + 2*graphiteThickness + 2*glassThickness + gasThickness + padThickness;

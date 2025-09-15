@@ -1,6 +1,7 @@
 #include "RunAction.hh"
-
+#include "Physics.hh"
 #include "G4Run.hh"
+#include "G4UserRunAction.hh"
 #include "G4RunManager.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4UnitsTable.hh"
@@ -40,7 +41,12 @@ RunAction::~RunAction(){
 #endif
 }
 
-void RunAction::BeginOfRunAction(const G4Run*){
+void RunAction::BeginOfRunAction(const G4Run* run) {
+    if (isMaster) {
+        G4cout << "### RunAction::BeginOfRunAction (Master Thread) -> Inicializando GarfieldPhysics..." << G4endl;
+        GarfieldPhysics::GetInstance()->InitializePhysics();
+    }
+
     G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
     G4String fileName = "Garfield.root";
     analysisManager->OpenFile(fileName);

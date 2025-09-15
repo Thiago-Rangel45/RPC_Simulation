@@ -1,90 +1,87 @@
 #include "PhysicsList.hh"
-#include "G4EmConfigurator.hh"
+#include "G4SystemOfUnits.hh"
+#include "G4DecayPhysics.hh"
+#include "G4RadioactiveDecayPhysics.hh"
+#include "G4HadronElasticPhysicsHP.hh"
+#include "G4HadronPhysicsQGSP_BERT_HP.hh"
+#include "G4IonPhysics.hh"
+#include "G4NeutronTrackingCut.hh"
+#include "G4EmStandardPhysics_option4.hh" 
+#include "Physics.hh"
 #include "G4FastSimulationManagerProcess.hh"
+#include "G4EmConfigurator.hh"
 #include "G4LossTableManager.hh"
-#include "G4PAIModel.hh"
 #include "G4PAIPhotModel.hh"
 #include "G4ProcessManager.hh"
-#include "G4ProductionCuts.hh"
 #include "G4RegionStore.hh"
-#include "QGSP_BERT_HP.hh"
-#include "G4SystemOfUnits.hh"
-#include "Physics.hh"
-#include "G4StepLimiter.hh"
-#include "G4UserSpecialCuts.hh"
+#include "G4ProductionCuts.hh"
+#include "G4EmParameters.hh"
+
+
+class CustomEMPhysics : public G4EmStandardPhysics_option4 {
+public:
+    CustomEMPhysics(G4int ver = 1) : G4EmStandardPhysics_option4(ver) {}
+    ~CustomEMPhysics() override = default;
+
+    void ConstructProcess() override {
+        G4EmStandardPhysics_option4::ConstructProcess();
+
+        G4cout << "[LOG] CustomEMPhysics::ConstructProcess -> Adicionando a parameterização do Garfield..." << G4endl;
+        GarfieldPhysics* garfieldPhysics = GarfieldPhysics::GetInstance();
+
+        auto theParticleIterator = GetParticleIterator();
+        theParticleIterator->reset();
+        while ((*theParticleIterator)()) {
+            G4ParticleDefinition* particle = theParticleIterator->value();
+            G4ProcessManager* pmanager = particle->GetProcessManager();
+            auto particleName = particle->GetParticleName();
+
+            if (garfieldPhysics->FindParticleName(particleName, "garfield")) {
+                auto fastSimProcess_garfield = new G4FastSimulationManagerProcess("G4FSMP_garfield");
+                G4cout << "[LOG] PhysicsList -> Anexando o processo Garfield FastSim a: " << particleName << G4endl;
+                pmanager->AddDiscreteProcess(fastSimProcess_garfield);
+            }
+
+            if (garfieldPhysics->FindParticleName(particleName, "geant4")) {
+                 if (particleName == "gamma") continue;
+
+                G4EmConfigurator* config = G4LossTableManager::Instance()->EmConfigurator();
+                G4PAIPhotModel* paiPhot = new G4PAIPhotModel(particle, "G4PAIModel");
+                 G4cout << "[LOG] PhysicsList -> Anexando o modelo PAIPhot a: " << particleName << G4endl;
+
+                if (particleName == "e-" || particleName == "e+") {
+                    config->SetExtraEmModel(particleName, "eIoni", paiPhot, "RegionGarfield", 0, 1e8*MeV, paiPhot);
+                } else if (particleName == "mu-" || particleName == "mu+") {
+                    config->SetExtraEmModel(particleName, "muIoni", paiPhot, "RegionGarfield", 0, 1e8*MeV, paiPhot);
+                } else if (particleName == "proton" || particleName == "pi+" || particleName == "pi-") {
+                    config->SetExtraEmModel(particleName, "hIoni", paiPhot, "RegionGarfield", 0, 1e8*MeV, paiPhot);
+                } else if (particleName == "alpha" || particleName == "He3" || particleName == "GenericIon") {
+                    config->SetExtraEmModel(particleName, "ionIoni", paiPhot, "RegionGarfield", 0, 1e8*MeV, paiPhot);
+                }
+            }
+        }
+    }
+};
 
 PhysicsList::PhysicsList() : G4VModularPhysicsList() {
     SetVerboseLevel(0);
     defaultCutValue = 1 * CLHEP::mm;
 
-    QGSP_BERT_HP* physicsList = new QGSP_BERT_HP;
-    for (G4int i = 0;; ++i) {
-        G4VPhysicsConstructor* elem =
-            const_cast<G4VPhysicsConstructor*>(physicsList->GetPhysics(i));
-        if (!elem) break;
-        RegisterPhysics(elem);
-    }
+    G4EmParameters::Instance()->SetIntegral(false);
+
+    RegisterPhysics(new G4DecayPhysics());
+    RegisterPhysics(new G4RadioactiveDecayPhysics());
+    RegisterPhysics(new G4HadronElasticPhysicsHP());
+    RegisterPhysics(new G4HadronPhysicsQGSP_BERT_HP());
+    RegisterPhysics(new G4IonPhysics());
+    RegisterPhysics(new G4NeutronTrackingCut());
+    RegisterPhysics(new CustomEMPhysics());
 
     GarfieldPhysics* garfieldPhysics = GarfieldPhysics::GetInstance();
-    garfieldPhysics->SetIonizationModel("PAIPhot");
+    garfieldPhysics->SetIonizationModel("Heed");
 }
 
 PhysicsList::~PhysicsList() {}
-
-void PhysicsList::AddParameterisation() {
-    G4cout << "[LOG] PhysicsList::AddParameterisation -> Setting up Garfield parameterisation..." << G4endl;
-    GarfieldPhysics* garfieldPhysics = GarfieldPhysics::GetInstance();
-    std::string ionizationModel = garfieldPhysics->GetIonizationModel();
-
-    auto fastSimProcess_garfield = new G4FastSimulationManagerProcess("G4FSMP_garfield");
-
-    auto theParticleIterator = GetParticleIterator();
-    theParticleIterator->reset();
-
-    while ((*theParticleIterator)()) {
-        G4ParticleDefinition* particle = theParticleIterator->value();
-        G4ProcessManager* pmanager = particle->GetProcessManager();
-        G4EmConfigurator* config = G4LossTableManager::Instance()->EmConfigurator();
-        
-        auto particleName = particle->GetParticleName();
-
-        if (garfieldPhysics->FindParticleName(particleName, "garfield")) {
-            G4cout << "[LOG] PhysicsList -> Attaching Garfield FastSim process to: " << particleName << G4endl;
-            pmanager->AddDiscreteProcess(fastSimProcess_garfield);
-        }
-
-        if (garfieldPhysics->FindParticleName(particleName, "geant4")) {
-            double eMin = MeV * garfieldPhysics->GetMinEnergyMeVParticle(particleName, "geant4");
-            double eMax = MeV * garfieldPhysics->GetMaxEnergyMeVParticle(particleName, "geant4");
-
-            if (ionizationModel == "PAI") {
-                G4cout << "[LOG] PhysicsList -> Attaching PAI model to: " << particleName << G4endl;
-                G4PAIModel* pai = new G4PAIModel(particle, "G4PAIModel");
-                if (particleName == "e-" || particleName == "e+") {
-                    config->SetExtraEmModel(particleName, "eIoni", pai, "RegionGarfield", eMin, eMax, pai);
-                } else if (particleName == "mu-" || particleName == "mu+") {
-                    config->SetExtraEmModel(particleName, "muIoni", pai, "RegionGarfield", eMin, eMax, pai);
-                } else if (particleName == "proton" || particleName == "pi+" || particleName == "pi-") {
-                    config->SetExtraEmModel(particleName, "hIoni", pai, "RegionGarfield", eMin, eMax, pai);
-                } else if (particleName == "alpha" || particleName == "He3" || particleName == "GenericIon") {
-                    config->SetExtraEmModel(particleName, "ionIoni", pai, "RegionGarfield", eMin, eMax, pai);
-                }
-            } else if (ionizationModel == "PAIPhot") {
-                G4cout << "[LOG] PhysicsList -> Attaching PAIPhot model to: " << particleName << G4endl;
-                G4PAIPhotModel* paiPhot = new G4PAIPhotModel(particle, "G4PAIModel");
-                if (particleName == "e-" || particleName == "e+") {
-                    config->SetExtraEmModel(particleName, "eIoni", paiPhot, "RegionGarfield", eMin, eMax, paiPhot);
-                } else if (particleName == "mu-" || particleName == "mu+") {
-                    config->SetExtraEmModel(particleName, "muIoni", paiPhot, "RegionGarfield", eMin, eMax, paiPhot);
-                } else if (particleName == "proton" || particleName == "pi+" || particleName == "pi-") {
-                    config->SetExtraEmModel(particleName, "hIoni", paiPhot, "RegionGarfield", eMin, eMax, paiPhot);
-                } else if (particleName == "alpha" || particleName == "He3" || particleName == "GenericIon") {
-                    config->SetExtraEmModel(particleName, "ionIoni", paiPhot, "RegionGarfield", eMin, eMax, paiPhot);
-                }
-            }
-        }
-    }
-}
 
 void PhysicsList::SetCuts() {
     G4ProductionCutsTable::GetProductionCutsTable()->SetEnergyRange(100. * eV, 100. * TeV);
@@ -95,7 +92,7 @@ void PhysicsList::SetCuts() {
     cuts->SetProductionCut(1 * um, G4ProductionCuts::GetIndex("e-"));
     cuts->SetProductionCut(1 * um, G4ProductionCuts::GetIndex("e+"));
     if (region) {
-        G4cout << "[LOG] PhysicsList::SetCuts -> Applying special production cuts to RegionGarfield." << G4endl;
+        G4cout << "[LOG] PhysicsList::SetCuts -> Aplicando cortes de produção especiais à RegionGarfield." << G4endl;
         region->SetProductionCuts(cuts);
     } else {
         G4cout << "[LOG] PhysicsList::SetCuts -> ERRO: RegionGarfield não encontrada!" << G4endl;
@@ -103,31 +100,12 @@ void PhysicsList::SetCuts() {
     DumpCutValuesTable();
 }
 
-void PhysicsList::ConstructParticle() {
+void PhysicsList::ConstructParticle()
+{
     G4VModularPhysicsList::ConstructParticle();
 }
 
-void PhysicsList::ConstructProcess() {
+void PhysicsList::ConstructProcess()
+{
     G4VModularPhysicsList::ConstructProcess();
-    AddParameterisation();
-    GarfieldPhysics* garfieldPhysics = GarfieldPhysics::GetInstance();
-
-    auto theParticleIterator = GetParticleIterator();
-    theParticleIterator->reset();
-    while ((*theParticleIterator)()) {
-        G4ParticleDefinition* particle = theParticleIterator->value();
-        G4ProcessManager* pmanager = particle->GetProcessManager();
-
-        if (!particle->IsShortLived()) {
-            pmanager->AddProcess(new G4StepLimiter(), -1, -1, 3);
-            pmanager->AddProcess(new G4UserSpecialCuts(), -1, -1, 4);
-        }
-
-        if (garfieldPhysics->FindParticleName(particle->GetParticleName(), "garfield")) {
-            G4VProcess* fsmp = pmanager->GetProcess("G4FSMP_garfield");
-            if (fsmp) {
-                pmanager->SetProcessOrdering(fsmp, G4ProcessVectorDoItIndex::idxPostStep, 0);
-            }
-        }
-    }
 }

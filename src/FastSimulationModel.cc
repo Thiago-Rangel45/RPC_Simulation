@@ -10,13 +10,11 @@
 FastSimulationModel::FastSimulationModel(G4String modelName, G4Region* envelope) : G4VFastSimulationModel(modelName, envelope) {
   G4cout << "[LOG] FastSimulationModel -> Constructor called for model: " << modelName << G4endl;
   fGarfieldPhysics = GarfieldPhysics::GetInstance();
-  fGarfieldPhysics->InitializePhysics();
 }
 
 FastSimulationModel::FastSimulationModel(G4String modelName) : G4VFastSimulationModel(modelName) {
   G4cout << "[LOG] FastSimulationModel -> Constructor called for model: " << modelName << G4endl;
   fGarfieldPhysics = GarfieldPhysics::GetInstance();
-  fGarfieldPhysics->InitializePhysics();
 }
 
 FastSimulationModel::~FastSimulationModel() {}
