@@ -8,6 +8,7 @@
 #include "Garfield/MediumMagboltz.hh"
 #include "Garfield/Sensor.hh"
 #include "Garfield/TrackHeed.hh"
+#include "G4ThreeVector.hh" 
 
 using EnergyRange_MeV = std::pair<double, double>;
 using MapParticlesEnergy = std::map<std::string, EnergyRange_MeV>;
@@ -83,6 +84,7 @@ class GarfieldPhysics {
     fGain = 0;
     nsum = 0;
   }
+  const std::vector<std::pair<G4ThreeVector, G4ThreeVector>>& GetDriftLines() const { return fDriftLines; }
 
   static constexpr double kGap   = 0.2;   // [cm]
   static constexpr double kHalfX = 5.0;   // [cm]
@@ -104,6 +106,7 @@ class GarfieldPhysics {
   Garfield::ComponentAnalyticField* fComponentAnalyticField = nullptr;
 
   std::vector<GarfieldParticle> fSecondaryParticles;
+  std::vector<std::pair<G4ThreeVector, G4ThreeVector>> fDriftLines;
 
   bool createSecondariesInGeant4 = false;
   double fEnergyDeposit = 0.;

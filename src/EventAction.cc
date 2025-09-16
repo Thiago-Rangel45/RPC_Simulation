@@ -8,6 +8,10 @@
 #include "RunAction.hh"
 #include "Randomize.hh"
 #include "G4coutDestination.hh" 
+#include "G4VisManager.hh"
+#include "G4Polyline.hh"
+#include "G4Colour.hh"
+#include "G4VisAttributes.hh"
 
 EventAction::EventAction() 
 : G4UserEventAction(),
@@ -60,6 +64,22 @@ void EventAction::EndOfEventAction(const G4Event* event) {
   analysisManager->FillNtupleDColumn(4, fGain);
   analysisManager->AddNtupleRow();
 
+  G4VVisManager* pVisManager = G4VVisManager::GetConcreteInstance();
+  if (pVisManager) {
+      GarfieldPhysics* garfieldPhysics = GarfieldPhysics::GetInstance();
+      const auto& driftLines = garfieldPhysics->GetDriftLines();
+      for (const auto& line : driftLines) {
+          G4Polyline polyline;
+          polyline.push_back(line.first);
+          polyline.push_back(line.second);
+          
+          G4Colour colour(0.0, 1.0, 1.0); 
+          G4VisAttributes attribs(colour);
+          polyline.SetVisAttributes(attribs);
+          
+          pVisManager->Draw(polyline);
+      }
+  }
 
   G4int printModulo = G4RunManager::GetRunManager()->GetPrintProgress();
   if ((printModulo > 0) && (eventID % printModulo == 0)) {

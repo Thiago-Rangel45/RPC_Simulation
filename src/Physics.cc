@@ -219,12 +219,13 @@ void GarfieldPhysics::DoIt(std::string particleName, double ekin_MeV,
                            double dx, double dy, double dz) {
   G4cout << "\n[LOG] GarfieldPhysics::DoIt -> Simulating track in Garfield++" << G4endl;
   G4cout << "    -> Particle: " << particleName << " at (" << x_cm << ", " << y_cm << ", " << z_cm << ") cm" << G4endl;
-  
+
   G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
   fEnergyDeposit = 0;
   fSecondaryParticles.clear();
   fAvalancheSize = 0;
   nsum = 0;
+  fDriftLines.clear(); // Limpa as linhas de drift do evento anterior
 
   Garfield::AvalancheMC drift(fSensor);
   drift.SetDistanceSteps(1.e-4);
@@ -262,10 +263,25 @@ void GarfieldPhysics::DoIt(std::string particleName, double ekin_MeV,
   }
 
   unsigned int ne = 0, ni = 0;
-  drift.GetAvalancheSize(ne, ni); 
-  fAvalancheSize = ne; 
+  drift.GetAvalancheSize(ne, ni);
+  fAvalancheSize = ne;
   fGain = (nsum > 0) ? (static_cast<double>(fAvalancheSize) / nsum) : 0.0;
-  
+
+  // --- CORREÇÃO: Assinatura da função GetElectronEndpoint corrigida ---
+  const unsigned int nEndpoints = drift.GetNumberOfElectronEndpoints();
+  for (unsigned int i = 0; i < nEndpoints; ++i) {
+      double x1, y1, z1, t1; // Ponto inicial
+      double x2, y2, z2, t2; // Ponto final
+      int status;
+      // Chamada correta com 10 argumentos
+      drift.GetElectronEndpoint(i, x1, y1, z1, t1, x2, y2, z2, t2, status);
+
+      G4ThreeVector start(x1 * CLHEP::cm, y1 * CLHEP::cm, z1 * CLHEP::cm);
+      G4ThreeVector end(x2 * CLHEP::cm, y2 * CLHEP::cm, z2 * CLHEP::cm);
+      fDriftLines.push_back(std::make_pair(start, end));
+  }
+  // ------------------------------------------------------------------
+
   G4cout << "[LOG] GarfieldPhysics::DoIt -> Ionization electrons created (nsum): " << nsum << G4endl;
   G4cout << "[LOG] GarfieldPhysics::DoIt -> Total avalanche size: " << fAvalancheSize << G4endl;
   G4cout << "[LOG] GarfieldPhysics::DoIt -> Calculated Gain: " << fGain << G4endl;

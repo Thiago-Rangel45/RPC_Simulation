@@ -16,7 +16,7 @@ public:
     DetectorConstruction();
     virtual ~DetectorConstruction();
     virtual G4VPhysicalVolume *Construct() override;
-    virtual void ConstructSDandField();
+    virtual void ConstructSDandField() override;
 
 private:
     void DefineMaterials();
