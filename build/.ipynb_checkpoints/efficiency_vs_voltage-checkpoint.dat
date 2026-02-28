@@ -1,0 +1,111 @@
+MediumMagboltz::LoadGasFile:
+    Reading file c2h2f4_ic4h10_sf6.gas.
+    Version 12.
+    Gas composition set to iC4H10/SF6/C2H2F4 (5/5/90).
+MediumMagboltz::Mixer:
+    4000 linear energy steps between 0 and 40 eV.
+    ISO-C4H10 2014 ANISOTRPI
+      mass: 58.1234 amu
+      ionisation threshold: 10.67 eV
+      24 inelastic terms (15 excitations, 4 superelastic, 5 other)
+     SF6 2014  ANISOTROPIC  
+      mass: 146.055 amu
+      ionisation threshold: 15.67 eV
+      35 inelastic terms (25 excitations, 3 superelastic, 7 other)
+     C2H2F4 2024 ANISOTROPIC
+      mass: 102.031 amu
+      ionisation threshold: 13.2 eV
+      19 inelastic terms (10 excitations, 4 superelastic, 5 other)
+MediumMagboltz::Mixer:
+    Lowest ionisation threshold in the mixture: 10.67 eV (iC4H10)
+MediumMagboltz::Mixer:
+    Energy [eV]    Collision Rate [ns-1]
+          2.50               5031.70
+          7.50               7456.63
+         12.50               9896.64
+         17.50              11216.71
+         22.50              11556.15
+         27.50              11744.82
+         32.50              13207.83
+         37.50              14634.13
+MediumMagboltz::ComputePhotonCollisionTable:
+    Photoabsorption cross-section for iC4H10 not available.
+    Using n-butane cross-section instead.
+ComponentParallelPlate::Setup: Geometry with N = 8 layers set.
+ComponentParallelPlate::AddPlane: Added plane electrode.
+Sensor::AddElectrode:
+    Added readout electrode "ReadoutPlane".
+    All signals are reset.
+Sensor::SetTimeWindow: Resetting all signals.
+AvalancheGrid::GetParameters:
+    Electric field = (0, 34.5939, 0) [kV/cm].
+  Townsend = 470.429 [1/cm], Attachment = 74.9058 [1/cm], Velocity = -0.0143166 [cm/ns].
+AvalancheGrid::StartGridAvalanche: Starting grid based simulation with 1 initial electrons.
+-4.5  0
+ComponentParallelPlate::Setup: Geometry with N = 8 layers set.
+ComponentParallelPlate::AddPlane: Added plane electrode.
+Sensor::AddElectrode:
+    Added readout electrode "ReadoutPlane".
+    All signals are reset.
+Sensor::SetTimeWindow: Resetting all signals.
+AvalancheGrid::GetParameters:
+    Electric field = (0, 38.4377, 0) [kV/cm].
+  Townsend = 470.429 [1/cm], Attachment = 74.9058 [1/cm], Velocity = -0.0143166 [cm/ns].
+AvalancheGrid::StartGridAvalanche: Starting grid based simulation with 2 initial electrons.
+-5  0
+ComponentParallelPlate::Setup: Geometry with N = 8 layers set.
+ComponentParallelPlate::AddPlane: Added plane electrode.
+Sensor::AddElectrode:
+    Added readout electrode "ReadoutPlane".
+    All signals are reset.
+Sensor::SetTimeWindow: Resetting all signals.
+AvalancheGrid::GetParameters:
+    Electric field = (0, 42.2815, 0) [kV/cm].
+  Townsend = 470.429 [1/cm], Attachment = 74.9058 [1/cm], Velocity = -0.0143166 [cm/ns].
+AvalancheGrid::StartGridAvalanche: Starting grid based simulation with 2 initial electrons.
+-5.5  0.02
+ComponentParallelPlate::Setup: Geometry with N = 8 layers set.
+ComponentParallelPlate::AddPlane: Added plane electrode.
+Sensor::AddElectrode:
+    Added readout electrode "ReadoutPlane".
+    All signals are reset.
+Sensor::SetTimeWindow: Resetting all signals.
+AvalancheGrid::GetParameters:
+    Electric field = (0, 46.1252, 0) [kV/cm].
+  Townsend = 470.429 [1/cm], Attachment = 74.9058 [1/cm], Velocity = -0.0143166 [cm/ns].
+AvalancheGrid::StartGridAvalanche: Starting grid based simulation with 29 initial electrons.
+-6  0.02
+ComponentParallelPlate::Setup: Geometry with N = 8 layers set.
+ComponentParallelPlate::AddPlane: Added plane electrode.
+Sensor::AddElectrode:
+    Added readout electrode "ReadoutPlane".
+    All signals are reset.
+Sensor::SetTimeWindow: Resetting all signals.
+AvalancheGrid::GetParameters:
+    Electric field = (0, 49.969, 0) [kV/cm].
+  Townsend = 470.429 [1/cm], Attachment = 74.9058 [1/cm], Velocity = -0.0143166 [cm/ns].
+AvalancheGrid::StartGridAvalanche: Starting grid based simulation with 3 initial electrons.
+-6.5  0.02
+ComponentParallelPlate::Setup: Geometry with N = 8 layers set.
+ComponentParallelPlate::AddPlane: Added plane electrode.
+Sensor::AddElectrode:
+    Added readout electrode "ReadoutPlane".
+    All signals are reset.
+Sensor::SetTimeWindow: Resetting all signals.
+AvalancheGrid::GetParameters:
+    Electric field = (0, 53.8128, 0) [kV/cm].
+  Townsend = 470.429 [1/cm], Attachment = 74.9058 [1/cm], Velocity = -0.0143166 [cm/ns].
+AvalancheGrid::StartGridAvalanche: Starting grid based simulation with 5 initial electrons.
+-7  0
+ComponentParallelPlate::Setup: Geometry with N = 8 layers set.
+ComponentParallelPlate::AddPlane: Added plane electrode.
+Sensor::AddElectrode:
+    Added readout electrode "ReadoutPlane".
+    All signals are reset.
+Sensor::SetTimeWindow: Resetting all signals.
+AvalancheGrid::GetParameters:
+    Electric field = (0, 57.6565, 0) [kV/cm].
+  Townsend = 470.429 [1/cm], Attachment = 74.9058 [1/cm], Velocity = -0.0143166 [cm/ns].
+AvalancheGrid::StartGridAvalanche: Starting grid based simulation with 8 initial electrons.
+-7.5  0.02
+Efficiency study finished.
